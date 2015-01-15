@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
-/* Copyright (C) 2007,2008 Freescale Semiconductor, Inc.
+/* Copyright 2007-2016 Freescale Semiconductor, Inc.
+ * Copyright 2016-2019 NXP
  *
  * This program is free software; you can redistribute  it and/or modify it
  * under  the terms of  the GNU General  Public License as published by the
