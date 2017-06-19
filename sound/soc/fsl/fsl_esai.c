@@ -21,6 +21,12 @@
 				SNDRV_PCM_FMTBIT_S20_3LE | \
 				SNDRV_PCM_FMTBIT_S24_LE)
 
+struct fsl_esai_soc_data {
+	bool imx;
+	bool dma_workaround;
+	bool channel_swap_workaround;
+};
+
 /**
  * fsl_esai: ESAI private data
  *
@@ -57,6 +63,7 @@ struct fsl_esai {
 	struct clk *fsysclk;
 	struct clk *spbaclk;
 	struct tasklet_struct task;
+	const struct fsl_esai_soc_data *soc;
 	u32 fifo_depth;
 	u32 slot_width;
 	u32 slots;
@@ -71,6 +78,40 @@ struct fsl_esai {
 	bool synchronous;
 	bool reset_at_xrun;
 	char name[32];
+};
+
+static struct fsl_esai_soc_data fsl_esai_vf610 = {
+	.imx = false,
+	.dma_workaround = false,
+	.channel_swap_workaround = true,
+};
+
+static struct fsl_esai_soc_data fsl_esai_imx35 = {
+	.imx = true,
+	.dma_workaround = false,
+	.channel_swap_workaround = true,
+};
+
+static struct fsl_esai_soc_data fsl_esai_imx6ull = {
+	.imx = true,
+	.dma_workaround = false,
+	.channel_swap_workaround = false,
+};
+
+/* In imx8qxp rev1, the dma request signal is not revert. For esai
+ * dma request is low valid, but edma assert it as high level valid.
+ * so we need to use GPT to transfer the dma request signal.
+ */
+static struct fsl_esai_soc_data fsl_esai_imx8qxp_v1 = {
+	.imx = true,
+	.dma_workaround = true,
+	.channel_swap_workaround = false,
+};
+
+static struct fsl_esai_soc_data fsl_esai_imx8qm = {
+	.imx = true,
+	.dma_workaround = false,
+	.channel_swap_workaround = false,
 };
 
 static irqreturn_t esai_isr(int irq, void *devid)
@@ -985,9 +1026,20 @@ static void fsl_esai_reset(struct snd_pcm_substream *substream, bool stop)
 		imx_start_unlock_pcm_streams(esai_priv->substream, 2, &flags);
 }
 
+static const struct of_device_id fsl_esai_dt_ids[] = {
+	{ .compatible = "fsl,imx8qxp-v1-esai", .data = &fsl_esai_imx8qxp_v1 },
+	{ .compatible = "fsl,imx8qm-esai", .data = &fsl_esai_imx8qm },
+	{ .compatible = "fsl,imx6ull-esai", .data = &fsl_esai_imx6ull },
+	{ .compatible = "fsl,imx35-esai", .data = &fsl_esai_imx35 },
+	{ .compatible = "fsl,vf610-esai", .data = &fsl_esai_vf610 },
+	{}
+};
+MODULE_DEVICE_TABLE(of, fsl_esai_dt_ids);
+
 static int fsl_esai_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
+	const struct of_device_id *of_id;
 	struct fsl_esai *esai_priv;
 	struct resource *res;
 	const __be32 *iprop;
@@ -1005,6 +1057,12 @@ static int fsl_esai_probe(struct platform_device *pdev)
 	if (of_device_is_compatible(np, "fsl,vf610-esai") ||
 	    of_device_is_compatible(np, "fsl,imx35-esai"))
 		esai_priv->reset_at_xrun = true;
+
+	of_id = of_match_device(fsl_esai_dt_ids, &pdev->dev);
+	if (!of_id || !of_id->data)
+		return -EINVAL;
+
+	esai_priv->soc = of_id->data;
 
 	/* Get the addresses and IRQ */
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
@@ -1080,7 +1138,7 @@ static int fsl_esai_probe(struct platform_device *pdev)
 	/* From imx6ull, the channel swap issue in underrun/overrun is
 	 * fixed in hardware. So remove the workaround.
 	 */
-	if (!of_device_is_compatible(pdev->dev.of_node, "fsl,imx6ull-esai")) {
+	if (esai_priv->soc->channel_swap_workaround) {
 		esai_priv->dma_params_tx.check_xrun = fsl_esai_check_xrun;
 		esai_priv->dma_params_rx.check_xrun = fsl_esai_check_xrun;
 		esai_priv->dma_params_tx.device_reset = fsl_esai_reset;
@@ -1142,14 +1200,6 @@ static int fsl_esai_remove(struct platform_device *pdev)
 
 	return 0;
 }
-
-static const struct of_device_id fsl_esai_dt_ids[] = {
-	{ .compatible = "fsl,imx6ull-esai", },
-	{ .compatible = "fsl,imx35-esai", },
-	{ .compatible = "fsl,vf610-esai", },
-	{}
-};
-MODULE_DEVICE_TABLE(of, fsl_esai_dt_ids);
 
 #ifdef CONFIG_PM
 static int fsl_esai_runtime_resume(struct device *dev)
