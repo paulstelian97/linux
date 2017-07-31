@@ -74,6 +74,7 @@ snd-soc-imx-si476x-objs := imx-si476x.o
 snd-soc-imx-pdm-objs := imx-pdm.o
 snd-soc-imx-ak4458-objs := imx-ak4458.o
 snd-soc-imx-ak5558-objs := imx-ak5558.o
+snd-soc-imx-ak4497-objs := imx-ak4497.o
 
 obj-$(CONFIG_SND_SOC_EUKREA_TLV320) += snd-soc-eukrea-tlv320.o
 obj-$(CONFIG_SND_SOC_PHYCORE_AC97) += snd-soc-phycore-ac97.o
@@ -95,3 +96,4 @@ obj-$(CONFIG_SND_SOC_IMX_SI476X) += snd-soc-imx-si476x.o
 obj-$(CONFIG_SND_SOC_IMX_PDM_MIC) += snd-soc-imx-pdm.o
 obj-$(CONFIG_SND_SOC_IMX_AK4458) += snd-soc-imx-ak4458.o
 obj-$(CONFIG_SND_SOC_IMX_AK5558) += snd-soc-imx-ak5558.o
+obj-$(CONFIG_SND_SOC_IMX_AK4497) += snd-soc-imx-ak4497.o
