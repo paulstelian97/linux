@@ -540,11 +540,11 @@ int cs42xx8_probe(struct device *dev, struct regmap *regmap)
 	}
 
 	cs42xx8->gpiod_reset = devm_gpiod_get_optional(dev, "reset",
-							GPIOD_OUT_HIGH);
+							GPIOF_OUT_INIT_LOW);
 	if (IS_ERR(cs42xx8->gpiod_reset))
 		return PTR_ERR(cs42xx8->gpiod_reset);
 
-	gpiod_set_value_cansleep(cs42xx8->gpiod_reset, 0);
+	gpiod_set_value_cansleep(cs42xx8->gpiod_reset, 1);
 
 	cs42xx8->clk = devm_clk_get(dev, "mclk");
 	if (IS_ERR(cs42xx8->clk)) {
@@ -627,6 +627,7 @@ static int cs42xx8_runtime_resume(struct device *dev)
 	}
 
 	gpiod_set_value_cansleep(cs42xx8->gpiod_reset, 0);
+	gpio_set_value_cansleep(cs42xx8->gpiod_reset, 1);
 
 	ret = regulator_bulk_enable(ARRAY_SIZE(cs42xx8->supplies),
 				    cs42xx8->supplies);
