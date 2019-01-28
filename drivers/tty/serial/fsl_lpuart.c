@@ -881,7 +881,12 @@ static irqreturn_t lpuart32_rxint(int irq, void *dev_id)
 		 */
 		sr = lpuart32_read(&sport->port, UARTSTAT);
 		rx = lpuart32_read(&sport->port, UARTDATA);
-		rx &= 0x3ff;
+
+		if ((sr & UARTSTAT_FE) && (rx & UARTDATA_FRETSC) &&
+			!(rx & UARTDATA_MASK)) {
+			if (uart_handle_break(&sport->port))
+				continue;
+		}
 
 		if (uart_handle_sysrq_char(&sport->port, (unsigned char)rx))
 			continue;
