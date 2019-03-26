@@ -16,6 +16,7 @@
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_crtc_helper.h>
 #include <drm/drm_edid.h>
+#include <drm/drm_probe_helper.h>
 #include <linux/gpio/consumer.h>
 #include <linux/i2c.h>
 #include <linux/module.h>
@@ -683,8 +684,8 @@ static void it6263_bridge_enable(struct drm_bridge *bridge)
 }
 
 static void it6263_bridge_mode_set(struct drm_bridge *bridge,
-				    struct drm_display_mode *mode,
-				    struct drm_display_mode *adj)
+				    const struct drm_display_mode *mode,
+				    const struct drm_display_mode *adj)
 {
 	struct it6263 *it6263 = bridge_to_it6263(bridge);
 	struct regmap *regmap = it6263->hdmi_regmap;
