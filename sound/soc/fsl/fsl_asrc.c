@@ -552,21 +552,6 @@ struct dma_chan *fsl_asrc_get_dma_channel(struct fsl_asrc_pair *pair, bool dir)
 }
 EXPORT_SYMBOL_GPL(fsl_asrc_get_dma_channel);
 
-static int fsl_asrc_dai_startup(struct snd_pcm_substream *substream,
-				struct snd_soc_dai *dai)
-{
-	struct fsl_asrc *asrc_priv = snd_soc_dai_get_drvdata(dai);
-
-	/* Odd channel number is not valid for older ASRC (channel_bits==3) */
-	if (asrc_priv->channel_bits == 3)
-		snd_pcm_hw_constraint_step(substream->runtime, 0,
-					   SNDRV_PCM_HW_PARAM_CHANNELS, 2);
-
-
-	return snd_pcm_hw_constraint_list(substream->runtime, 0,
-			SNDRV_PCM_HW_PARAM_RATE, &fsl_asrc_rate_constraints);
-}
-
 static int fsl_asrc_select_clk(struct fsl_asrc *asrc_priv,
 				struct fsl_asrc_pair *pair,
 				int in_rate,
@@ -747,6 +732,11 @@ static int fsl_asrc_dai_startup(struct snd_pcm_substream *substream,
 			    struct snd_soc_dai *cpu_dai)
 {
 	struct fsl_asrc *asrc_priv   = snd_soc_dai_get_drvdata(cpu_dai);
+
+	/* Odd channel number is not valid for older ASRC (channel_bits==3) */
+	if (asrc_priv->channel_bits == 3)
+		snd_pcm_hw_constraint_step(substream->runtime, 0,
+					   SNDRV_PCM_HW_PARAM_CHANNELS, 2);
 
 	asrc_priv->substream[substream->stream] = substream;
 	return 0;
