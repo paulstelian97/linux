@@ -678,7 +678,7 @@ static int cs42xx8_runtime_resume(struct device *dev)
 	}
 
 	gpiod_set_value_cansleep(cs42xx8->gpiod_reset, 0);
-	gpio_set_value_cansleep(cs42xx8->gpiod_reset, 1);
+	gpiod_set_value_cansleep(cs42xx8->gpiod_reset, 1);
 
 	ret = regulator_bulk_enable(ARRAY_SIZE(cs42xx8->supplies),
 				    cs42xx8->supplies);
