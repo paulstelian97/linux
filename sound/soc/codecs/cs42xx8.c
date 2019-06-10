@@ -561,7 +561,7 @@ int cs42xx8_probe(struct device *dev, struct regmap *regmap)
 	}
 
 	cs42xx8->gpiod_reset = devm_gpiod_get_optional(dev, "reset",
-							GPIOF_OUT_INIT_LOW);
+							GPIOD_OUT_LOW);
 	if (IS_ERR(cs42xx8->gpiod_reset))
 		return PTR_ERR(cs42xx8->gpiod_reset);
 
