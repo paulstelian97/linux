@@ -325,6 +325,7 @@ struct flexcan_priv {
 	const struct flexcan_devtype_data *devtype_data;
 	struct regulator *reg_xceiver;
 	struct flexcan_stop_mode stm;
+	bool in_stop_mode;
 
 #ifdef CONFIG_IMX_SCU
 	/* IPC handle when enable stop mode by System Controller firmware(scfw) */
@@ -2015,6 +2016,8 @@ static int __maybe_unused flexcan_suspend(struct device *device)
 			err = flexcan_enter_stop_mode(priv);
 			if (err)
 				return err;
+
+			priv->in_stop_mode = true;
 		} else {
 			flexcan_chip_stop(dev);
 
@@ -2043,6 +2046,15 @@ static int __maybe_unused flexcan_resume(struct device *device)
 		netif_device_attach(dev);
 		netif_start_queue(dev);
 		if (device_may_wakeup(device)) {
+			if (priv->in_stop_mode) {
+				flexcan_enable_wakeup_irq(priv, false);
+				err = flexcan_exit_stop_mode(priv);
+				if (err)
+					return  err;
+
+				priv->in_stop_mode = false;
+			}
+
 			disable_irq_wake(dev->irq);
 		} else {
 			pinctrl_pm_select_default_state(device);
@@ -2083,6 +2095,11 @@ static int __maybe_unused flexcan_noirq_suspend(struct device *device)
 	struct net_device *dev = dev_get_drvdata(device);
 	struct flexcan_priv *priv = netdev_priv(dev);
 
+	/* Need to enable wakeup interrupt in noirq suspend stage. Otherwise,
+	 * it will trigger continuously wakeup interrupt if the wakeup event
+	 * comes before noirq suspend stage, and simultaneously it has enter
+	 * the stop mode.
+	 */
 	if (netif_running(dev) && device_may_wakeup(device))
 		flexcan_enable_wakeup_irq(priv, true);
 
@@ -2095,11 +2112,17 @@ static int __maybe_unused flexcan_noirq_resume(struct device *device)
 	struct flexcan_priv *priv = netdev_priv(dev);
 	int err;
 
+	/* Need to exit stop mode in noirq resume stage. Otherwise, it will
+	 * trigger continuously wakeup interrupt if the wakeup event comes,
+	 * and simultaneously it has still in stop mode.
+	 */
 	if (netif_running(dev) && device_may_wakeup(device)) {
 		flexcan_enable_wakeup_irq(priv, false);
 		err = flexcan_exit_stop_mode(priv);
 		if (err)
 			return err;
+
+		priv->in_stop_mode = false;
 	}
 
 	return 0;
