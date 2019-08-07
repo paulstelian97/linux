@@ -518,7 +518,10 @@ static int flexcan_stop_mode_enable_scfw(struct flexcan_priv *priv, bool enabled
 	return 0;
 }
 #else
-static int flexcan_stop_mode_enable_scfw(struct flexcan_priv *priv, bool enabled) {}
+static int flexcan_stop_mode_enable_scfw(struct flexcan_priv *priv, bool enabled)
+{
+	return 0;
+}
 #endif
 
 static inline int flexcan_enter_stop_mode(struct flexcan_priv *priv)
@@ -1821,7 +1824,10 @@ static int flexcan_setup_stop_mode_scfw(struct platform_device *pdev)
        return 0;
 }
 #else
-static int flexcan_setup_stop_mode_scfw(struct platform_device *pdev) {}
+static int flexcan_setup_stop_mode_scfw(struct platform_device *pdev)
+{
+	return 0;
+}
 #endif
 
 static const struct of_device_id flexcan_of_match[] = {
