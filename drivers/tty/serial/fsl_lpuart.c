@@ -322,7 +322,7 @@ static struct lpuart_soc_data imx7ulp_data = {
 	.iotype = UPIO_MEM32,
 	.reg_off = IMX_REG_OFF,
 	.rx_watermark = 0,
-	.rx_dma_cyclic = false,
+	.rx_dma_cyclic = true,
 };
 
 static struct lpuart_soc_data imx8qxp_data = {
