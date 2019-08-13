@@ -1259,7 +1259,7 @@ static int adv7511_probe(struct i2c_client *i2c, const struct i2c_device_id *id)
 
 	adv7511_audio_init(dev, adv7511);
 
-	if (adv->type == ADV7533 || adv->type == ADV7535) {
+	if (adv7511->type == ADV7533 || adv7511->type == ADV7535) {
 		ret = adv7533_attach_dsi(adv7511);
 		if (ret)
 			goto err_remove_bridge;
