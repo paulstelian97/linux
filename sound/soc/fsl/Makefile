@@ -28,6 +28,7 @@ snd-soc-fsl-dma-objs := fsl_dma.o
 
 obj-$(CONFIG_SND_SOC_FSL_AUDMIX) += snd-soc-fsl-audmix.o
 snd-soc-fsl-asoc-card-objs := fsl-asoc-card.o
+snd-soc-fsl-hdmi-objs := fsl_hdmi.o
 obj-$(CONFIG_SND_SOC_FSL_ASRC) += snd-soc-fsl-asrc.o
 obj-$(CONFIG_SND_SOC_FSL_DSP) += snd-soc-fsl-dsp.o
 obj-$(CONFIG_SND_SOC_FSL_SAI) += snd-soc-fsl-sai.o
@@ -36,6 +37,7 @@ obj-$(CONFIG_SND_SOC_FSL_SPDIF) += snd-soc-fsl-spdif.o
 obj-$(CONFIG_SND_SOC_FSL_ESAI) += snd-soc-fsl-esai.o
 obj-$(CONFIG_SND_SOC_FSL_MICFIL) += snd-soc-fsl-micfil.o
 obj-$(CONFIG_SND_SOC_FSL_UTILS) += snd-soc-fsl-utils.o
+obj-$(CONFIG_SND_SOC_FSL_HDMI) += snd-soc-fsl-hdmi.o
 obj-$(CONFIG_SND_SOC_POWERPC_DMA) += snd-soc-fsl-dma.o
 obj-$(CONFIG_SND_SOC_FSL_ASOC_CARD) += snd-soc-fsl-asoc-card.o
 
@@ -56,6 +58,7 @@ obj-$(CONFIG_SND_SOC_IMX_AUDMUX) += snd-soc-imx-audmux.o
 
 obj-$(CONFIG_SND_SOC_IMX_PCM_FIQ) += imx-pcm-fiq.o
 obj-$(CONFIG_SND_SOC_IMX_PCM_DMA) += imx-pcm-dma.o imx-pcm-dma-v2.o
+obj-$(CONFIG_SND_SOC_IMX_HDMI_DMA) += imx-hdmi-dma.o hdmi_pcm.o
 
 # i.MX Machine Support
 snd-soc-eukrea-tlv320-objs := eukrea-tlv320.o
@@ -80,6 +83,8 @@ snd-soc-imx-ak4458-objs := imx-ak4458.o
 snd-soc-imx-ak5558-objs := imx-ak5558.o
 snd-soc-imx-ak4497-objs := imx-ak4497.o
 snd-soc-imx-dsp-objs := imx-dsp.o
+snd-soc-imx-hdmi-objs := imx-hdmi.o
+snd-soc-imx-cdnhdmi-objs := imx-cdnhdmi.o
 
 obj-$(CONFIG_SND_SOC_EUKREA_TLV320) += snd-soc-eukrea-tlv320.o
 obj-$(CONFIG_SND_SOC_PHYCORE_AC97) += snd-soc-phycore-ac97.o
@@ -103,3 +108,7 @@ obj-$(CONFIG_SND_SOC_IMX_AK4458) += snd-soc-imx-ak4458.o
 obj-$(CONFIG_SND_SOC_IMX_AK5558) += snd-soc-imx-ak5558.o
 obj-$(CONFIG_SND_SOC_IMX_AK4497) += snd-soc-imx-ak4497.o
 obj-$(CONFIG_SND_SOC_IMX_DSP) += snd-soc-imx-dsp.o
+obj-$(CONFIG_SND_SOC_IMX_HDMI) += snd-soc-imx-hdmi.o
+obj-$(CONFIG_SND_SOC_IMX_CDNHDMI) += snd-soc-imx-cdnhdmi.o
+
+AFLAGS_hdmi_pcm.o := -march=armv7-a -mtune=cortex-a9 -mfpu=neon -mfloat-abi=softfp
