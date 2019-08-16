@@ -2,7 +2,7 @@
 /*
  * otg.c - ChipIdea USB IP core OTG driver
  *
- * Copyright (C) 2013 Freescale Semiconductor, Inc.
+ * Copyright (C) 2013-2015 Freescale Semiconductor, Inc.
  *
  * Author: Peter Chen
  */
@@ -20,6 +20,7 @@
 #include "bits.h"
 #include "otg.h"
 #include "otg_fsm.h"
+#include "host.h"
 
 /**
  * hw_read_otgsc returns otgsc register bits value.
@@ -35,7 +36,7 @@ u32 hw_read_otgsc(struct ci_hdrc *ci, u32 mask)
 	 * detection overwrite OTGSC register value
 	 */
 	cable = &ci->platdata->vbus_extcon;
-	if (!IS_ERR(cable->edev)) {
+	if (!IS_ERR(cable->edev) || ci->role_switch) {
 		if (cable->changed)
 			val |= OTGSC_BSVIS;
 		else
@@ -53,7 +54,7 @@ u32 hw_read_otgsc(struct ci_hdrc *ci, u32 mask)
 	}
 
 	cable = &ci->platdata->id_extcon;
-	if (!IS_ERR(cable->edev)) {
+	if (!IS_ERR(cable->edev) || ci->role_switch) {
 		if (cable->changed)
 			val |= OTGSC_IDIS;
 		else
@@ -83,7 +84,7 @@ void hw_write_otgsc(struct ci_hdrc *ci, u32 mask, u32 data)
 	struct ci_hdrc_cable *cable;
 
 	cable = &ci->platdata->vbus_extcon;
-	if (!IS_ERR(cable->edev)) {
+	if (!IS_ERR(cable->edev) || ci->role_switch) {
 		if (data & mask & OTGSC_BSVIS)
 			cable->changed = false;
 
@@ -97,7 +98,7 @@ void hw_write_otgsc(struct ci_hdrc *ci, u32 mask, u32 data)
 	}
 
 	cable = &ci->platdata->id_extcon;
-	if (!IS_ERR(cable->edev)) {
+	if (!IS_ERR(cable->edev) || ci->role_switch) {
 		if (data & mask & OTGSC_IDIS)
 			cable->changed = false;
 
@@ -124,6 +125,20 @@ enum ci_role ci_otg_role(struct ci_hdrc *ci)
 		: CI_ROLE_HOST;
 
 	return role;
+}
+
+void ci_handle_vbus_connected(struct ci_hdrc *ci)
+{
+	/*
+	 * TODO: if the platform does not supply 5v to udc, or use other way
+	 * to supply 5v, it needs to use other conditions to call
+	 * usb_gadget_vbus_connect.
+	 */
+	if (!ci->is_otg)
+		return;
+
+	if (hw_read_otgsc(ci, OTGSC_BSV))
+		usb_gadget_vbus_connect(&ci->gadget);
 }
 
 void ci_handle_vbus_change(struct ci_hdrc *ci)
@@ -162,13 +177,19 @@ static int hw_wait_vbus_lower_bsv(struct ci_hdrc *ci)
 	return 0;
 }
 
-static void ci_handle_id_switch(struct ci_hdrc *ci)
+void ci_handle_id_switch(struct ci_hdrc *ci)
 {
 	enum ci_role role = ci_otg_role(ci);
 
 	if (role != ci->role) {
 		dev_dbg(ci->dev, "switching from %s to %s\n",
 			ci_role(ci)->name, ci->roles[role]->name);
+
+		while (ci_hdrc_host_has_device(ci)) {
+			enable_irq(ci->irq);
+			usleep_range(10000, 15000);
+			disable_irq_nosync(ci->irq);
+		}
 
 		ci_role_stop(ci);
 
