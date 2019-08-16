@@ -1671,7 +1671,7 @@ static int __init imx_ahci_init(void)
 	return ret;
 }
 
-device_initcall(imx_ahci_init);
+device_initcall_sync(imx_ahci_init);
 
 MODULE_DESCRIPTION("Freescale i.MX AHCI SATA platform driver");
 MODULE_AUTHOR("Richard Zhu <Hong-Xing.Zhu@freescale.com>");
