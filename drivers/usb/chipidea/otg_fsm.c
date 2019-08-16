@@ -25,7 +25,10 @@
 #include "ci.h"
 #include "bits.h"
 #include "otg.h"
+#include "udc.h"
 #include "otg_fsm.h"
+#include "udc.h"
+#include "host.h"
 
 /* Add for otg: interact with user space app */
 static ssize_t
@@ -211,6 +214,7 @@ static unsigned otg_timer_ms[] = {
 	0,
 	TB_DATA_PLS,
 	TB_SSEND_SRP,
+	TA_DP_END,
 };
 
 /*
@@ -356,6 +360,13 @@ static int b_ssend_srp_tmout(struct ci_hdrc *ci)
 		return 1;
 }
 
+static int a_dp_end_tmout(struct ci_hdrc *ci)
+{
+	ci->fsm.a_bus_drop = 0;
+	ci->fsm.a_srp_det = 1;
+	return 0;
+}
+
 /*
  * Keep this list in the same order as timers indexed
  * by enum otg_fsm_timer in include/linux/usb/otg-fsm.h
@@ -373,6 +384,7 @@ static int (*otg_timer_handlers[])(struct ci_hdrc *) = {
 	NULL,			/* A_WAIT_ENUM */
 	b_data_pls_tmout,	/* B_DATA_PLS */
 	b_ssend_srp_tmout,	/* B_SSEND_SRP */
+	a_dp_end_tmout,		/* A_DP_END */
 };
 
 /*
@@ -558,11 +570,16 @@ static int ci_otg_start_host(struct otg_fsm *fsm, int on)
 static int ci_otg_start_gadget(struct otg_fsm *fsm, int on)
 {
 	struct ci_hdrc	*ci = container_of(fsm, struct ci_hdrc, fsm);
+	unsigned long flags;
+	int gadget_ready = 0;
 
-	if (on)
-		usb_gadget_vbus_connect(&ci->gadget);
-	else
-		usb_gadget_vbus_disconnect(&ci->gadget);
+	spin_lock_irqsave(&ci->lock, flags);
+	ci->vbus_active = on;
+	if (ci->driver)
+		gadget_ready = 1;
+	spin_unlock_irqrestore(&ci->lock, flags);
+	if (gadget_ready)
+		ci_hdrc_gadget_connect(&ci->gadget, on);
 
 	return 0;
 }
@@ -580,13 +597,26 @@ static struct otg_fsm_ops ci_otg_ops = {
 
 int ci_otg_fsm_work(struct ci_hdrc *ci)
 {
-	/*
-	 * Don't do fsm transition for B device
-	 * when there is no gadget class driver
-	 */
-	if (ci->fsm.id && !(ci->driver) &&
-		ci->fsm.otg->state < OTG_STATE_A_IDLE)
-		return 0;
+	if (ci->fsm.id && ci->fsm.otg->state < OTG_STATE_A_IDLE) {
+		unsigned long flags;
+
+		/* Charger detection */
+		spin_lock_irqsave(&ci->lock, flags);
+		if (ci->b_sess_valid_event) {
+			ci->b_sess_valid_event = false;
+			ci->vbus_active = ci->fsm.b_sess_vld;
+			spin_unlock_irqrestore(&ci->lock, flags);
+			ci_usb_charger_connect(ci, ci->fsm.b_sess_vld);
+			spin_lock_irqsave(&ci->lock, flags);
+		}
+		spin_unlock_irqrestore(&ci->lock, flags);
+		/*
+		 * Don't do fsm transition for B device if gadget
+		 * driver is not binded.
+		 */
+		if (!ci->driver)
+			return 0;
+	}
 
 	pm_runtime_get_sync(ci->dev);
 	if (otg_statemachine(&ci->fsm)) {
@@ -742,8 +772,7 @@ irqreturn_t ci_otg_fsm_irq(struct ci_hdrc *ci)
 	if (otg_int_src) {
 		if (otg_int_src & OTGSC_DPIS) {
 			hw_write_otgsc(ci, OTGSC_DPIS, OTGSC_DPIS);
-			fsm->a_srp_det = 1;
-			fsm->a_bus_drop = 0;
+			ci_otg_add_timer(ci, A_DP_END);
 		} else if (otg_int_src & OTGSC_IDIS) {
 			hw_write_otgsc(ci, OTGSC_IDIS, OTGSC_IDIS);
 			if (fsm->id == 0) {
@@ -753,6 +782,7 @@ irqreturn_t ci_otg_fsm_irq(struct ci_hdrc *ci)
 			}
 		} else if (otg_int_src & OTGSC_BSVIS) {
 			hw_write_otgsc(ci, OTGSC_BSVIS, OTGSC_BSVIS);
+			ci->b_sess_valid_event = true;
 			if (otgsc & OTGSC_BSV) {
 				fsm->b_sess_vld = 1;
 				ci_otg_del_timer(ci, B_SSEND_SRP);
@@ -841,4 +871,40 @@ int ci_hdrc_otg_fsm_init(struct ci_hdrc *ci)
 void ci_hdrc_otg_fsm_remove(struct ci_hdrc *ci)
 {
 	sysfs_remove_group(&ci->dev->kobj, &inputs_attr_group);
+}
+
+/* Restart OTG fsm if resume from power lost */
+void ci_hdrc_otg_fsm_restart(struct ci_hdrc *ci)
+{
+	struct otg_fsm *fsm = &ci->fsm;
+	int id_status = fsm->id;
+
+	/* Update fsm if power lost in peripheral state */
+	if (ci->fsm.otg->state == OTG_STATE_B_PERIPHERAL) {
+		fsm->b_sess_vld = 0;
+		otg_statemachine(fsm);
+	}
+
+	hw_write_otgsc(ci, OTGSC_IDIE, OTGSC_IDIE);
+	hw_write_otgsc(ci, OTGSC_AVVIE, OTGSC_AVVIE);
+
+	/* Update fsm variables for restart */
+	fsm->id = hw_read_otgsc(ci, OTGSC_ID) ? 1 : 0;
+	if (fsm->id) {
+		fsm->b_ssend_srp =
+			hw_read_otgsc(ci, OTGSC_BSV) ? 0 : 1;
+		fsm->b_sess_vld =
+			hw_read_otgsc(ci, OTGSC_BSV) ? 1 : 0;
+	} else if (fsm->id != id_status) {
+		/* ID changes to be 0 */
+		fsm->a_bus_drop = 0;
+		fsm->a_bus_req = 1;
+		ci->id_event = true;
+	}
+
+	if (ci_hdrc_host_has_device(ci) &&
+			!hw_read(ci, OP_PORTSC, PORTSC_CCS))
+		fsm->b_conn = 0;
+
+	ci_otg_fsm_work(ci);
 }
