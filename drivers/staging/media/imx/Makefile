@@ -18,3 +18,4 @@ obj-$(CONFIG_VIDEO_IMX7_CSI) += imx7-media-csi.o
 obj-$(CONFIG_VIDEO_IMX7_CSI) += imx7-mipi-csis.o
 obj-$(CONFIG_IMX8_MEDIA_DEVICE)   += imx8-media-dev.o
 obj-$(CONFIG_IMX8_CAPTURE_DRIVER) += imx8-capture.o
+obj-$(CONFIG_IMX8_MIPI_CSI2) 	  += imx8-mipi-csi2.o
