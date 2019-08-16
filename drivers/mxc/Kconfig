@@ -1,0 +1,27 @@
+# drivers/mxc/Kconfig
+
+if ARCH_MXC
+
+menu "MXC support drivers"
+
+config MXC_SIM
+	tristate "MXC SIM support"
+	default n
+	help
+	Say Y to get MXC SIM support.
+
+# drivers common to MXC and MX8 go here:
+
+if ARM64
+source "drivers/mxc/hantro/Kconfig"
+source "drivers/mxc/vpu_malone/Kconfig"
+source "drivers/mxc/vpu_windsor/Kconfig"
+endif
+
+source "drivers/mxc/gpu-viv/Kconfig"
+source "drivers/mxc/sim/Kconfig"
+source "drivers/mxc/mlb/Kconfig"
+
+endmenu
+
+endif
