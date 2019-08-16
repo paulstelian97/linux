@@ -103,6 +103,7 @@
 			#cooling-cells = <2>;
 			nvmem-cells = <&cpu_speed_grade>;
 			nvmem-cell-names = "speed_grade";
+			cpu-idle-states = <&CPU_SLEEP>;
 		};
 
 		A53_1: cpu@1 {
@@ -115,6 +116,7 @@
 			next-level-cache = <&A53_L2>;
 			operating-points-v2 = <&a53_opp_table>;
 			#cooling-cells = <2>;
+			cpu-idle-states = <&CPU_SLEEP>;
 		};
 
 		A53_2: cpu@2 {
@@ -127,6 +129,7 @@
 			next-level-cache = <&A53_L2>;
 			operating-points-v2 = <&a53_opp_table>;
 			#cooling-cells = <2>;
+			cpu-idle-states = <&CPU_SLEEP>;
 		};
 
 		A53_3: cpu@3 {
@@ -139,11 +142,27 @@
 			next-level-cache = <&A53_L2>;
 			operating-points-v2 = <&a53_opp_table>;
 			#cooling-cells = <2>;
+			cpu-idle-states = <&CPU_SLEEP>;
 		};
 
 		A53_L2: l2-cache0 {
 			compatible = "cache";
 		};
+
+		idle-states {
+			entry-method = "psci";
+
+			CPU_SLEEP: cpu-sleep {
+				compatible = "arm,idle-state";
+				arm,psci-suspend-param = <0x0010033>;
+				local-timer-stop;
+				entry-latency-us = <1000>;
+				exit-latency-us = <700>;
+				min-residency-us = <2700>;
+				wakeup-latency-us = <1500>;
+			};
+		};
+
 	};
 
 	a53_opp_table: opp-table {
@@ -266,6 +285,25 @@
 		             <GIC_PPI 10 IRQ_TYPE_LEVEL_LOW>; /* Hypervisor */
 		interrupt-parent = <&gic>;
 		arm,no-tick-in-suspend;
+	};
+
+	busfreq { /* BUSFREQ */
+		compatible = "fsl,imx_busfreq";
+		clocks = <&clk IMX8MQ_DRAM_PLL_OUT>, <&clk IMX8MQ_CLK_DRAM_ALT>,
+			 <&clk IMX8MQ_CLK_DRAM_APB>, <&clk IMX8MQ_CLK_DRAM_APB>,
+			 <&clk IMX8MQ_CLK_DRAM_CORE>, <&clk IMX8MQ_CLK_DRAM_ALT_ROOT>,
+			 <&clk IMX8MQ_SYS1_PLL_40M>, <&clk IMX8MQ_SYS1_PLL_400M>,
+			 <&clk IMX8MQ_SYS1_PLL_100M>, <&clk IMX8MQ_SYS1_PLL_800M>,
+			 <&clk IMX8MQ_CLK_NOC>, <&clk IMX8MQ_CLK_MAIN_AXI>,
+			 <&clk IMX8MQ_CLK_AHB>, <&clk IMX8MQ_CLK_25M>,
+			 <&clk IMX8MQ_SYS2_PLL_333M>, <&clk IMX8MQ_SYS1_PLL_133M>;
+		clock-names = "dram_pll", "dram_alt_src", "dram_apb_src", "dram_apb_pre_div",
+			      "dram_core", "dram_alt_root", "sys1_pll_40m", "sys1_pll_400m",
+			      "sys1_pll_100m", "sys1_pll_800m", "noc_div", "main_axi_src",
+			      "ahb_div", "osc_25m", "sys2_pll_333m", "sys1_pll_133m";
+		interrupts = <GIC_SPI 102 IRQ_TYPE_LEVEL_HIGH>, <GIC_SPI 109 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 110 IRQ_TYPE_LEVEL_HIGH>, <GIC_SPI 111 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-name = "irq_busfreq_0", "irq_busfreq_1", "irq_busfreq_2", "irq_busfreq_3";
 	};
 
 	soc@0 {
@@ -454,6 +492,10 @@
 				cpu_speed_grade: speed-grade@10 {
 					reg = <0x10 4>;
 				};
+
+				fec_mac_address: mac-address@640 {
+					reg = <0x90 6>;
+				};
 			};
 
 			anatop: syscon@30360000 {
@@ -511,6 +553,7 @@
 				reg = <0x303a0000 0x10000>;
 				interrupt-parent = <&gic>;
 				interrupt-controller;
+				broken-wake-request-signals;
 				#interrupt-cells = <3>;
 
 				pgc {
@@ -656,7 +699,7 @@
 			ecspi1: spi@30820000 {
 				#address-cells = <1>;
 				#size-cells = <0>;
-				compatible = "fsl,imx8mq-ecspi", "fsl,imx51-ecspi";
+				compatible = "fsl,imx8mq-ecspi", "fsl,imx6ul-ecspi";
 				reg = <0x30820000 0x10000>;
 				interrupts = <GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&clk IMX8MQ_CLK_ECSPI1_ROOT>,
@@ -668,7 +711,7 @@
 			ecspi2: spi@30830000 {
 				#address-cells = <1>;
 				#size-cells = <0>;
-				compatible = "fsl,imx8mq-ecspi", "fsl,imx51-ecspi";
+				compatible = "fsl,imx8mq-ecspi", "fsl,imx6ul-ecspi";
 				reg = <0x30830000 0x10000>;
 				interrupts = <GIC_SPI 32 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&clk IMX8MQ_CLK_ECSPI2_ROOT>,
@@ -680,7 +723,7 @@
 			ecspi3: spi@30840000 {
 				#address-cells = <1>;
 				#size-cells = <0>;
-				compatible = "fsl,imx8mq-ecspi", "fsl,imx51-ecspi";
+				compatible = "fsl,imx8mq-ecspi", "fsl,imx6ul-ecspi";
 				reg = <0x30840000 0x10000>;
 				interrupts = <GIC_SPI 33 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&clk IMX8MQ_CLK_ECSPI3_ROOT>,
@@ -800,6 +843,15 @@
 				status = "disabled";
 			};
 
+			mu: mu@30aa0000 {
+				compatible = "fsl,imx8mq-mu", "fsl,imx6sx-mu";
+				reg = <0x30aa0000 0x10000>;
+				interrupts = <GIC_SPI 88 IRQ_TYPE_LEVEL_HIGH>;
+				clocks = <&clk IMX8MQ_CLK_MU_ROOT>;
+				clock-names = "mu";
+				#mbox-cells = <2>;
+			};
+
 			usdhc1: mmc@30b40000 {
 				compatible = "fsl,imx8mq-usdhc",
 				             "fsl,imx7d-usdhc";
@@ -872,6 +924,9 @@
 				              "enet_clk_ref", "enet_out";
 				fsl,num-tx-queues = <3>;
 				fsl,num-rx-queues = <3>;
+				nvmem-cells = <&fec_mac_address>;
+				nvmem-cell-names = "mac-address";
+				nvmem_macaddr_swap;
 				status = "disabled";
 			};
 		};
@@ -936,6 +991,7 @@
 			phy-names = "usb2-phy", "usb3-phy";
 			power-domains = <&pgc_otg1>;
 			usb3-resume-missing-cas;
+			snps,power-down-scale = <2>;
 			status = "disabled";
 		};
 
@@ -968,6 +1024,7 @@
 			phy-names = "usb2-phy", "usb3-phy";
 			power-domains = <&pgc_otg2>;
 			usb3-resume-missing-cas;
+			snps,power-down-scale = <2>;
 			status = "disabled";
 		};
 
@@ -1061,5 +1118,34 @@
 			interrupt-parent = <&gic>;
 			interrupts = <GIC_SPI 98 IRQ_TYPE_LEVEL_HIGH>;
 		};
+
+		vpu: vpu@38300000 {
+			compatible = "nxp,imx8mq-hantro";
+			reg = <0x38300000 0x200000>;
+			reg-names = "regs_hantro";
+			interrupts = <GIC_SPI 7 IRQ_TYPE_LEVEL_HIGH>, <GIC_SPI 8 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "irq_hantro_g1", "irq_hantro_g2";
+			clocks = <&clk IMX8MQ_CLK_VPU_G1_ROOT>, <&clk IMX8MQ_CLK_VPU_G2_ROOT>, <&clk IMX8MQ_CLK_VPU_DEC_ROOT>;
+			clock-names = "clk_hantro_g1", "clk_hantro_g2", "clk_hantro_bus";
+			assigned-clocks = <&clk IMX8MQ_CLK_VPU_G1>, <&clk IMX8MQ_CLK_VPU_G2>, <&clk IMX8MQ_CLK_VPU_BUS>;
+			assigned-clock-parents = <&clk IMX8MQ_VPU_PLL_OUT>, <&clk IMX8MQ_VPU_PLL_OUT>, <&clk IMX8MQ_SYS1_PLL_800M>;
+			assigned-clock-rates = <600000000>, <600000000>, <800000000>;
+			power-domains = <&pgc_vpu>;
+			status = "disabled";
+		};
+	};
+
+	rpmsg: rpmsg{
+		compatible = "fsl,imx8mq-rpmsg";
+		/* up to now, the following channels are used in imx rpmsg
+		 * - tx1/rx1: messages channel.
+		 * - general interrupt1: remote proc finish re-init rpmsg stack
+		 *   when A core is partition reset.
+		 */
+		mbox-names = "tx", "rx", "rxdb";
+		mboxes = <&mu 0 1
+			  &mu 1 1
+			  &mu 3 1>;
+		status = "disabled";
 	};
 };

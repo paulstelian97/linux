@@ -183,6 +183,15 @@
 	mag3110@e {
 		compatible = "fsl,mag3110";
 		reg = <0x0e>;
+		position = <2>;
+	};
+
+	fxls8471@1e {
+		compatible = "fsl,fxls8471";
+		reg = <0x1e>;
+		position = <0>;
+		interrupt-parent = <&gpio5>;
+		interrupts = <0 8>;
 	};
 };
 
@@ -242,6 +251,22 @@
 	status = "okay";
 };
 
+&sim2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_sim2>;
+	assigned-clocks = <&clks IMX6UL_CLK_SIM_SEL>;
+	assigned-clock-parents = <&clks IMX6UL_CLK_SIM_PODF>;
+	assigned-clock-rates = <240000000>;
+	/* GPIO_ACTIVE_HIGH/LOW:sim card voltage control
+	 * NCN8025:Vcc = ACTIVE_HIGH?5V:3V
+	 * TDA8035:Vcc = ACTIVE_HIGH?5V:1.8V
+	 */
+	pinctrl-assert-gpios = <&gpio4 23 GPIO_ACTIVE_HIGH>;
+	port = <1>;
+	sven_low_active;
+	status = "okay";
+};
+
 &tsc {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_tsc>;
@@ -298,7 +323,7 @@
 &usdhc2 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_usdhc2>;
-	no-1-8-v;
+	non-removable;
 	keep-power-in-suspend;
 	wakeup-source;
 	status = "okay";
@@ -544,6 +569,51 @@
 			MX6UL_PAD_NAND_DATA01__USDHC2_DATA1 0x17059
 			MX6UL_PAD_NAND_DATA02__USDHC2_DATA2 0x17059
 			MX6UL_PAD_NAND_DATA03__USDHC2_DATA3 0x17059
+		>;
+	};
+
+	pinctrl_usdhc2_8bit: usdhc2grp_8bit {
+		fsl,pins = <
+			MX6UL_PAD_NAND_RE_B__USDHC2_CLK     0x10069
+			MX6UL_PAD_NAND_WE_B__USDHC2_CMD     0x17059
+			MX6UL_PAD_NAND_DATA00__USDHC2_DATA0 0x17059
+			MX6UL_PAD_NAND_DATA01__USDHC2_DATA1 0x17059
+			MX6UL_PAD_NAND_DATA02__USDHC2_DATA2 0x17059
+			MX6UL_PAD_NAND_DATA03__USDHC2_DATA3 0x17059
+			MX6UL_PAD_NAND_DATA04__USDHC2_DATA4 0x17059
+			MX6UL_PAD_NAND_DATA05__USDHC2_DATA5 0x17059
+			MX6UL_PAD_NAND_DATA06__USDHC2_DATA6 0x17059
+			MX6UL_PAD_NAND_DATA07__USDHC2_DATA7 0x17059
+		>;
+	};
+
+	pinctrl_usdhc2_8bit_100mhz: usdhc2grp_8bit_100mhz {
+		fsl,pins = <
+			MX6UL_PAD_NAND_RE_B__USDHC2_CLK     0x100b9
+			MX6UL_PAD_NAND_WE_B__USDHC2_CMD     0x170b9
+			MX6UL_PAD_NAND_DATA00__USDHC2_DATA0 0x170b9
+			MX6UL_PAD_NAND_DATA01__USDHC2_DATA1 0x170b9
+			MX6UL_PAD_NAND_DATA02__USDHC2_DATA2 0x170b9
+			MX6UL_PAD_NAND_DATA03__USDHC2_DATA3 0x170b9
+			MX6UL_PAD_NAND_DATA04__USDHC2_DATA4 0x170b9
+			MX6UL_PAD_NAND_DATA05__USDHC2_DATA5 0x170b9
+			MX6UL_PAD_NAND_DATA06__USDHC2_DATA6 0x170b9
+			MX6UL_PAD_NAND_DATA07__USDHC2_DATA7 0x170b9
+		>;
+	};
+
+	pinctrl_usdhc2_8bit_200mhz: usdhc2grp_8bit_200mhz {
+		fsl,pins = <
+			MX6UL_PAD_NAND_RE_B__USDHC2_CLK     0x100f9
+			MX6UL_PAD_NAND_WE_B__USDHC2_CMD     0x170f9
+			MX6UL_PAD_NAND_DATA00__USDHC2_DATA0 0x170f9
+			MX6UL_PAD_NAND_DATA01__USDHC2_DATA1 0x170f9
+			MX6UL_PAD_NAND_DATA02__USDHC2_DATA2 0x170f9
+			MX6UL_PAD_NAND_DATA03__USDHC2_DATA3 0x170f9
+			MX6UL_PAD_NAND_DATA04__USDHC2_DATA4 0x170f9
+			MX6UL_PAD_NAND_DATA05__USDHC2_DATA5 0x170f9
+			MX6UL_PAD_NAND_DATA06__USDHC2_DATA6 0x170f9
+			MX6UL_PAD_NAND_DATA07__USDHC2_DATA7 0x170f9
 		>;
 	};
 

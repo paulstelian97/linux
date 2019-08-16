@@ -293,8 +293,7 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_enet>;
 	phy-mode = "rgmii-id";
-	interrupts-extended = <&gpio1 6 IRQ_TYPE_LEVEL_HIGH>,
-			      <&intc 0 119 IRQ_TYPE_LEVEL_HIGH>;
+	fsl,magic-packet;
 	fsl,err006687-workaround-present;
 	status = "okay";
 };
@@ -509,6 +508,12 @@
 				MX6QDL_PAD_RGMII_RD2__RGMII_RD2		0x1b030
 				MX6QDL_PAD_RGMII_RD3__RGMII_RD3		0x1b030
 				MX6QDL_PAD_RGMII_RX_CTL__RGMII_RX_CTL	0x1b030
+				MX6QDL_PAD_GPIO_16__ENET_REF_CLK	0x4001b0a8
+			>;
+		};
+
+		pinctrl_enet_irq: enetirqgrp {
+			fsl,pins = <
 				MX6QDL_PAD_GPIO_6__ENET_IRQ		0x000b1
 			>;
 		};
@@ -628,6 +633,14 @@
 			>;
 		};
 
+		pinctrl_mlb: mlb {
+			fsl,pins = <
+				MX6QDL_PAD_ENET_TXD1__MLB_CLK 0x80000000
+				MX6QDL_PAD_GPIO_6__MLB_SIG    0x80000000
+				MX6QDL_PAD_GPIO_2__MLB_DATA   0x80000000
+			>;
+		};
+
 		pinctrl_pwm3: pwm1grp {
 			fsl,pins = <
 				MX6QDL_PAD_SD4_DAT1__PWM3_OUT		0x1b0b1
@@ -652,6 +665,24 @@
 			>;
 		};
 
+		pinctrl_uart3_1: uart3grp-1 {
+			fsl,pins = <
+				MX6QDL_PAD_SD4_CLK__UART3_RX_DATA	0x1b0b1
+				MX6QDL_PAD_SD4_CMD__UART3_TX_DATA	0x1b0b1
+				MX6QDL_PAD_EIM_D30__UART3_CTS_B		0x1b0b1
+				MX6QDL_PAD_EIM_EB3__UART3_RTS_B		0x1b0b1
+			>;
+		};
+
+		pinctrl_uart3dte_1: uart3dtegrp-1 {
+			fsl,pins = <
+				MX6QDL_PAD_SD4_CLK__UART3_TX_DATA	0x1b0b1
+				MX6QDL_PAD_SD4_CMD__UART3_RX_DATA	0x1b0b1
+				MX6QDL_PAD_EIM_D30__UART3_RTS_B		0x1b0b1
+				MX6QDL_PAD_EIM_EB3__UART3_CTS_B		0x1b0b1
+			>;
+		};
+
 		pinctrl_uart4: uart4grp {
 			fsl,pins = <
 				MX6QDL_PAD_KEY_COL0__UART4_TX_DATA	0x1b0b1
@@ -662,6 +693,17 @@
 		pinctrl_usbotg: usbotggrp {
 			fsl,pins = <
 				MX6QDL_PAD_ENET_RX_ER__USB_OTG_ID 0x17059
+			>;
+		};
+
+		pinctrl_usdhc1: usdhc1grp {
+			fsl,pins = <
+				MX6QDL_PAD_SD1_CMD__SD1_CMD		0x17059
+				MX6QDL_PAD_SD1_CLK__SD1_CLK		0x10059
+				MX6QDL_PAD_SD1_DAT0__SD1_DATA0		0x17059
+				MX6QDL_PAD_SD1_DAT1__SD1_DATA1		0x17059
+				MX6QDL_PAD_SD1_DAT2__SD1_DATA2		0x17059
+				MX6QDL_PAD_SD1_DAT3__SD1_DATA3		0x17059
 			>;
 		};
 
@@ -791,6 +833,12 @@
 	};
 };
 
+&mlb {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_mlb>;
+	status = "okay";
+};
+
 &pwm3 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_pwm3>;
@@ -805,6 +853,18 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_spdif>;
 	status = "okay";
+};
+
+&uart3 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_uart3_1>;
+	pinctrl-assert-gpios = <&max7310_b 4 GPIO_ACTIVE_HIGH>, /* CTS */
+			       <&max7310_c 3 GPIO_ACTIVE_HIGH>; /* RXD and TXD */
+	fsl,uart-has-rtscts;
+	status = "okay";
+	/* for DTE mode, add below change */
+	/* fsl,dte-mode; */
+	/* pinctrl-0 = <&pinctrl_uart3dte_1>; */
 };
 
 &uart4 {
@@ -822,6 +882,14 @@
 	vbus-supply = <&reg_usb_otg_vbus>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pinctrl_usbotg>;
+	status = "okay";
+};
+
+&usdhc1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pinctrl_usdhc1>;
+	cd-gpios = <&gpio1 1 GPIO_ACTIVE_LOW>;
+	no-1-8-v;
 	status = "okay";
 };
 

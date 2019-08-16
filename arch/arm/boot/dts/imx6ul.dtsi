@@ -82,10 +82,15 @@
 				 <&clks IMX6UL_CA7_SECONDARY_SEL>,
 				 <&clks IMX6UL_CLK_STEP>,
 				 <&clks IMX6UL_CLK_PLL1_SW>,
-				 <&clks IMX6UL_CLK_PLL1_SYS>;
+				 <&clks IMX6UL_CLK_PLL1_SYS>,
+				 <&clks IMX6UL_PLL1_BYPASS>,
+				 <&clks IMX6UL_CLK_PLL1>,
+				 <&clks IMX6UL_PLL1_BYPASS_SRC>,
+				 <&clks IMX6UL_CLK_OSC>;
 			clock-names = "arm", "pll2_bus",  "pll2_pfd2_396m",
 				      "secondary_sel", "step", "pll1_sw",
-				      "pll1_sys";
+				      "pll1_sys", "pll1_bypass", "pll1",
+				      "pll1_bypass_src", "osc";
 			arm-supply = <&reg_arm>;
 			soc-supply = <&reg_soc>;
 			nvmem-cells = <&cpu_speed_grade>;
@@ -154,9 +159,43 @@
 		interrupt-parent = <&gpc>;
 		ranges;
 
-		ocram: sram@900000 {
+		busfreq {
+			compatible = "fsl,imx_busfreq";
+			clocks = <&clks IMX6UL_CLK_PLL2_PFD2>, <&clks IMX6UL_CLK_PLL2_198M>,
+				 <&clks IMX6UL_CLK_PLL2_BUS>, <&clks IMX6UL_CLK_ARM>,
+				 <&clks IMX6UL_CLK_PLL3_USB_OTG>, <&clks IMX6UL_CLK_PERIPH>,
+				 <&clks IMX6UL_CLK_PERIPH_PRE>, <&clks IMX6UL_CLK_PERIPH_CLK2>,
+				 <&clks IMX6UL_CLK_PERIPH_CLK2_SEL>, <&clks IMX6UL_CLK_OSC>,
+				 <&clks IMX6UL_CLK_AHB>, <&clks IMX6UL_CLK_AXI>,
+				 <&clks IMX6UL_CLK_PERIPH2>, <&clks IMX6UL_CLK_PERIPH2_PRE>,
+				 <&clks IMX6UL_CLK_PERIPH2_CLK2>, <&clks IMX6UL_CLK_PERIPH2_CLK2_SEL>,
+				 <&clks IMX6UL_CLK_STEP>, <&clks IMX6UL_CLK_MMDC_P0_FAST>;
+			clock-names = "pll2_pfd2_396m", "pll2_198m", "pll2_bus", "arm", "pll3_usb_otg",
+				      "periph", "periph_pre", "periph_clk2", "periph_clk2_sel", "osc",
+				      "ahb", "ocram", "periph2", "periph2_pre", "periph2_clk2", "periph2_clk2_sel",
+				      "step", "mmdc";
+			fsl,max_ddr_freq = <400000000>;
+		};
+
+		ocrams: sram@00900000 {
+			compatible = "fsl,lpm-sram";
+			reg = <0x00900000 0x4000>;
+		};
+
+		ocrams_ddr: sram@00904000 {
+			compatible = "fsl,ddr-lpm-sram";
+			reg = <0x00904000 0x1000>;
+		};
+
+		ocram: sram@00905000 {
 			compatible = "mmio-sram";
-			reg = <0x00900000 0x20000>;
+			reg = <0x00905000 0x1B000>;
+		};
+
+		ocram_optee: sram@00918000 {
+			compatible = "fsl,optee-lpm-sram";
+			reg = <0x00918000 0x8000>;
+			overw_reg = <&ocram 0x00905000 0x13000>;
 		};
 
 		intc: interrupt-controller@a01000 {
@@ -858,6 +897,13 @@
 				status = "disabled";
 			};
 
+			sim1: sim@0218c000 {
+				compatible = "fsl,imx6ul-sim";
+				reg = <0x0218c000 0x4000>;
+				interrupts = <GIC_SPI 112 IRQ_TYPE_LEVEL_HIGH>;
+				status = "disabled";
+			};
+
 			usdhc1: usdhc@2190000 {
 				compatible = "fsl,imx6ul-usdhc", "fsl,imx6sx-usdhc";
 				reg = <0x02190000 0x4000>;
@@ -932,6 +978,15 @@
 				compatible = "fsl,imx6ul-mmdc", "fsl,imx6q-mmdc";
 				reg = <0x021b0000 0x4000>;
 				clocks = <&clks IMX6UL_CLK_MMDC_P0_IPG>;
+			};
+
+			sim2: sim@021b4000 {
+				compatible = "fsl,imx6ul-sim";
+				reg = <0x021b4000 0x4000>;
+				interrupts = <GIC_SPI 113 IRQ_TYPE_LEVEL_HIGH>;
+				clocks = <&clks IMX6UL_CLK_SIM2>;
+				clock-names = "sim";
+				status = "disabled";
 			};
 
 			weim: weim@21b8000 {

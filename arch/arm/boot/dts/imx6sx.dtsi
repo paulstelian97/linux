@@ -82,9 +82,13 @@
 				 <&clks IMX6SX_CLK_PLL2_PFD2>,
 				 <&clks IMX6SX_CLK_STEP>,
 				 <&clks IMX6SX_CLK_PLL1_SW>,
-				 <&clks IMX6SX_CLK_PLL1_SYS>;
+				 <&clks IMX6SX_CLK_PLL1_SYS>,
+				 <&clks IMX6SX_CLK_PLL1>,
+				 <&clks IMX6SX_PLL1_BYPASS>,
+				 <&clks IMX6SX_PLL1_BYPASS_SRC>;
 			clock-names = "arm", "pll2_pfd2_396m", "step",
-				      "pll1_sw", "pll1_sys";
+				      "pll1_sw", "pll1_sys", "pll1",
+				      "pll1_bypass", "pll1_bypass_src";
 			arm-supply = <&reg_arm>;
 			soc-supply = <&reg_soc>;
 		};
@@ -160,14 +164,48 @@
 		interrupt-parent = <&gpc>;
 		ranges;
 
-		ocram_s: sram@8f8000 {
-			compatible = "mmio-sram";
+		busfreq {
+			compatible = "fsl,imx_busfreq";
+			clocks = <&clks IMX6SX_CLK_PLL2_BUS>, <&clks IMX6SX_CLK_PLL2_PFD2>,
+				<&clks IMX6SX_CLK_PLL2_198M>, <&clks IMX6SX_CLK_ARM>,
+				<&clks IMX6SX_CLK_PLL3_USB_OTG>, <&clks IMX6SX_CLK_PERIPH>,
+				<&clks IMX6SX_CLK_PERIPH_PRE>, <&clks IMX6SX_CLK_PERIPH_CLK2>,
+				<&clks IMX6SX_CLK_PERIPH_CLK2_SEL>, <&clks IMX6SX_CLK_OSC>,
+				<&clks IMX6SX_CLK_PLL1_SYS>, <&clks IMX6SX_CLK_PERIPH2>,
+				<&clks IMX6SX_CLK_AHB>, <&clks IMX6SX_CLK_OCRAM_PODF>,
+				<&clks IMX6SX_CLK_PLL1_SW>, <&clks IMX6SX_CLK_PERIPH2_PRE>,
+				<&clks IMX6SX_CLK_PERIPH2_CLK2_SEL>, <&clks IMX6SX_CLK_PERIPH2_CLK2>,
+				<&clks IMX6SX_CLK_STEP>, <&clks IMX6SX_CLK_MMDC_PODF>,
+				<&clks IMX6SX_CLK_M4>;
+			clock-names = "pll2_bus", "pll2_pfd2_396m", "pll2_198m", "arm",
+					"pll3_usb_otg", "periph", "periph_pre", "periph_clk2",
+					"periph_clk2_sel", "osc", "pll1_sys", "periph2",
+					"ahb", "ocram", "pll1_sw", "periph2_pre",
+					"periph2_clk2_sel", "periph2_clk2", "step", "mmdc",
+					"m4";
+			fsl,max_ddr_freq = <400000000>;
+		};
+
+		ocrams: sram@008f8000 {
+			compatible = "fsl,lpm-sram";
 			reg = <0x008f8000 0x4000>;
 			clocks = <&clks IMX6SX_CLK_OCRAM_S>;
 		};
 
-		ocram: sram@900000 {
+		ocrams_ddr: sram@00900000 {
+			compatible = "fsl,ddr-lpm-sram";
+			reg = <0x00900000 0x1000>;
+			clocks = <&clks IMX6SX_CLK_OCRAM>;
+		};
+
+		ocram: sram@00901000 {
 			compatible = "mmio-sram";
+			reg = <0x00901000 0x1F000>;
+			clocks = <&clks IMX6SX_CLK_OCRAM>;
+		};
+
+		ocram_mf: sram-mf@00900000 {
+			compatible = "fsl,mega-fast-sram";
 			reg = <0x00900000 0x20000>;
 			clocks = <&clks IMX6SX_CLK_OCRAM>;
 		};
@@ -767,6 +805,7 @@
 				#interrupt-cells = <3>;
 				interrupts = <GIC_SPI 89 IRQ_TYPE_LEVEL_HIGH>;
 				interrupt-parent = <&intc>;
+				fsl,mf-mix-wakeup-irq = <0x7c00000 0x3d00 0x0 0x400240>;
 				clocks = <&clks IMX6SX_CLK_IPG>;
 				clock-names = "ipg";
 
@@ -928,6 +967,8 @@
 					      "enet_clk_ref", "enet_out";
 				fsl,num-tx-queues = <3>;
 				fsl,num-rx-queues = <3>;
+				stop-mode = <&gpr 0x10 3>;
+				fsl,wakeup_irq = <0>;
 				status = "disabled";
 			};
 
@@ -1037,6 +1078,10 @@
 					 <&clks IMX6SX_CLK_ENET_PTP>;
 				clock-names = "ipg", "ahb", "ptp",
 					      "enet_clk_ref", "enet_out";
+				fsl,num-tx-queues=<3>;
+				fsl,num-rx-queues=<3>;
+				stop-mode = <&gpr 0x10 4>;
+				fsl,wakeup_irq = <0>;
 				status = "disabled";
 			};
 
@@ -1122,6 +1167,12 @@
 				clocks = <&clks IMX6SX_CLK_QSPI2>,
 					 <&clks IMX6SX_CLK_QSPI2>;
 				clock-names = "qspi_en", "qspi";
+				status = "disabled";
+			};
+
+			qspi_m4: qspi-m4 {
+				compatible = "fsl,imx6sx-qspi-m4-restore";
+				reg = <0x021e4000 0x4000>;
 				status = "disabled";
 			};
 
@@ -1273,6 +1324,7 @@
 				interrupts = <GIC_SPI 100 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&clks IMX6SX_CLK_IPG>;
 				clock-names = "adc";
+				num-channels = <4>;
 				fsl,adck-max-frequency = <30000000>, <40000000>,
 							 <20000000>;
 				status = "disabled";
@@ -1284,6 +1336,7 @@
 				interrupts = <GIC_SPI 101 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&clks IMX6SX_CLK_IPG>;
 				clock-names = "adc";
+				num-channels = <4>;
 				fsl,adck-max-frequency = <30000000>, <40000000>,
 							 <20000000>;
 				status = "disabled";
@@ -1307,6 +1360,27 @@
 					 <&clks IMX6SX_CLK_ECSPI5>;
 				clock-names = "ipg", "per";
 				status = "disabled";
+			};
+
+			sema4: sema4@02290000 { /* sema4 */
+				compatible = "fsl,imx6sx-sema4";
+				reg = <0x02290000 0x4000>;
+				interrupts = <0 116 0x04>;
+				status = "okay";
+			};
+
+			mu: mu@02294000 { /* mu */
+				compatible = "fsl,imx6sx-mu";
+				reg = <0x02294000 0x4000>;
+				interrupts = <0 90 0x04>;
+				#mbox-cells = <2>;
+			};
+
+			mu_lp: mu_lp@02294000 { /* mu */
+				compatible = "fsl,imx6sx-mu-lp";
+				reg = <0x02294000 0x4000>;
+				interrupts = <0 90 0x04>;
+				status = "okay";
 			};
 
 			uart6: serial@22a0000 {
@@ -1391,5 +1465,19 @@
 			power-domain-names = "pcie", "pcie_phy";
 			status = "disabled";
 		};
+	};
+
+	rpmsg: rpmsg{
+		compatible = "fsl,imx6sx-rpmsg";
+		/* up to now, the following channels are used in imx rpmsg
+		 * - tx1/rx1: messages channel.
+		 * - general interrupt1: remote proc finish re-init rpmsg stack
+		 *   when A core is partition reset.
+		 */
+		mbox-names = "tx", "rx", "rxdb";
+		mboxes = <&mu 0 1
+			  &mu 1 1
+			  &mu 3 1>;
+		status = "disabled";
 	};
 };
