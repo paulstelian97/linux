@@ -68,5 +68,13 @@ config IMX8_MIPI_CSI2
 	  Enable support for video4linux camera sensor interface driver for
 	  i.MX8QM/QXP platform.
 
+config IMX8_PARALLEL_CSI
+	tristate "IMX8 Parallel Capture Controller"
+	depends on VIDEO_V4L2 && VIDEO_V4L2_SUBDEV_API
+	default y
+	help
+	  Enable support for video4linux parallel camera sensor interface
+	  driver for i.MX8QM/QXP platform.
+
 endmenu
 endif  #VIDEO_IMX_CAPTURE
