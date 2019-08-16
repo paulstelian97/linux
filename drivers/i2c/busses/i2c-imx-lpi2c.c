@@ -510,6 +510,8 @@ static irqreturn_t lpi2c_imx_isr(int irq, void *dev_id)
 	struct lpi2c_imx_struct *lpi2c_imx = dev_id;
 	unsigned int temp;
 
+	mdelay(1);
+
 	lpi2c_imx_intctrl(lpi2c_imx, 0);
 	temp = readl(lpi2c_imx->base + LPI2C_MSR);
 
