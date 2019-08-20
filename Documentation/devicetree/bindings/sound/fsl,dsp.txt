@@ -4,13 +4,13 @@ The IP is from Cadence.
 
 Required properties:
 
-  - compatible	: Contains "fsl,imx8qxp-dsp".
+  - compatible	: Contains "fsl,imx8qxp-dsp-v1".
   - reg		: Offset and length of the register set for the device.
 
 Example:
 
 dsp:  dsp@596e8000 {
-	compatible = "fsl,imx8qxp-dsp";
+	compatible = "fsl,imx8qxp-dsp-v1";
 	reg = <0x0 0x596e8000 0x0 0x88000>;
 	status = "okay";
 };
