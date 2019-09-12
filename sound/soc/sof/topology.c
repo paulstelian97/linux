@@ -1276,6 +1276,9 @@ static int spcm_bind(struct snd_sof_dev *sdev, struct snd_sof_pcm *spcm,
 	host_widget = snd_sof_find_swidget_sname(sdev,
 						 spcm->pcm.caps[dir].name,
 						 dir);
+
+	dev_err(sdev->dev, "spcm_bind: dir: %d name: %s\n", dir, spcm->pcm.caps[dir].name);
+
 	if (!host_widget) {
 		dev_err(sdev->dev, "can't find host comp to bind pcm\n");
 		return -EINVAL;
@@ -2468,8 +2471,78 @@ static int sof_link_sai_load(struct snd_soc_component *scomp, int index,
 			     struct snd_soc_tplg_hw_config *hw_config,
 			     struct sof_ipc_dai_config *config)
 {
+	struct snd_sof_dev *sdev = snd_soc_component_get_drvdata(scomp);
+	struct snd_soc_tplg_private *private = &cfg->priv;
+	struct sof_ipc_reply reply;
+	u32 size = sizeof(*config);
+	int ret;
+
+	/* handle master/slave and inverted clocks */
+	sof_dai_set_format(hw_config, config);
+
+	/* init IPC */
+	dev_info(sdev->dev, "sof_link_sai_load");
+	memset(&config->ssp, 0, sizeof(struct sof_ipc_dai_ssp_params));
+	config->hdr.size = size;
+
+	/*ret = sof_parse_tokens(scomp, &config->ssp, ssp_tokens,
+			       ARRAY_SIZE(ssp_tokens), private->array,
+			       le32_to_cpu(private->size));
+	if (ret != 0) {
+		dev_err(sdev->dev, "error: parse ssp tokens failed %d\n",
+			le32_to_cpu(private->size));
+		return ret;
+	} */
+
+	config->ssp.mclk_rate = le32_to_cpu(hw_config->mclk_rate);
+	config->ssp.bclk_rate = le32_to_cpu(hw_config->bclk_rate);
+	config->ssp.fsync_rate = le32_to_cpu(hw_config->fsync_rate);
+	config->ssp.tdm_slots = le32_to_cpu(hw_config->tdm_slots);
+	config->ssp.tdm_slot_width = le32_to_cpu(hw_config->tdm_slot_width);
+	config->ssp.mclk_direction = hw_config->mclk_direction;
+	config->ssp.rx_slots = le32_to_cpu(hw_config->rx_slots);
+	config->ssp.tx_slots = le32_to_cpu(hw_config->tx_slots);
+
+	dev_info(sdev->dev, "tplg: config SSP%d fmt 0x%x mclk %d bclk %d fclk %d width (%d)%d slots %d mclk id %d quirks %d\n",
+		config->dai_index, config->format,
+		config->ssp.mclk_rate, config->ssp.bclk_rate,
+		config->ssp.fsync_rate, config->ssp.sample_valid_bits,
+		config->ssp.tdm_slot_width, config->ssp.tdm_slots,
+		config->ssp.mclk_id, config->ssp.quirks);
+
+	/* validate SSP fsync rate and channel count */
+	if (config->ssp.fsync_rate < 8000 || config->ssp.fsync_rate > 192000) {
+		dev_err(sdev->dev, "error: invalid fsync rate for SSP%d\n",
+			config->dai_index);
+		return -EINVAL;
+	}
+
+	if (config->ssp.tdm_slots < 1 || config->ssp.tdm_slots > 8) {
+		dev_err(sdev->dev, "error: invalid channel count for SSP%d\n",
+			config->dai_index);
+		return -EINVAL;
+	}
+
+	/* send message to DSP */
+	ret = sof_ipc_tx_message(sdev->ipc,
+				 config->hdr.cmd, config, size, &reply,
+				 sizeof(reply));
+
+	if (ret < 0) {
+		dev_err(sdev->dev, "error: failed to set DAI config for SSP%d\n",
+			config->dai_index);
+		return ret;
+	}
+
+	/* set config for all DAI's with name matching the link name */
+	ret = sof_set_dai_config(sdev, size, link, config);
+	if (ret < 0)
+		dev_err(sdev->dev, "error: failed to save DAI config for SSP%d\n",
+			config->dai_index);
+
+	return ret;
 	/*TODO: Add implementation */
-	return 0;
+	//return 0;
 }
 
 static int sof_link_esai_load(struct snd_soc_component *scomp, int index,
@@ -2478,8 +2551,78 @@ static int sof_link_esai_load(struct snd_soc_component *scomp, int index,
 			      struct snd_soc_tplg_hw_config *hw_config,
 			      struct sof_ipc_dai_config *config)
 {
+	struct snd_sof_dev *sdev = snd_soc_component_get_drvdata(scomp);
+	struct snd_soc_tplg_private *private = &cfg->priv;
+	struct sof_ipc_reply reply;
+	u32 size = sizeof(*config);
+	int ret;
+
+	/* handle master/slave and inverted clocks */
+	sof_dai_set_format(hw_config, config);
+
+	/* init IPC */
+	dev_info(sdev->dev, "sof_link_esai_load");
+	memset(&config->ssp, 0, sizeof(struct sof_ipc_dai_ssp_params));
+	config->hdr.size = size;
+
+	/*ret = sof_parse_tokens(scomp, &config->ssp, ssp_tokens,
+			       ARRAY_SIZE(ssp_tokens), private->array,
+			       le32_to_cpu(private->size));
+	if (ret != 0) {
+		dev_err(sdev->dev, "error: parse ssp tokens failed %d\n",
+			le32_to_cpu(private->size));
+		return ret;
+	} */
+
+	config->ssp.mclk_rate = le32_to_cpu(hw_config->mclk_rate);
+	config->ssp.bclk_rate = le32_to_cpu(hw_config->bclk_rate);
+	config->ssp.fsync_rate = le32_to_cpu(hw_config->fsync_rate);
+	config->ssp.tdm_slots = le32_to_cpu(hw_config->tdm_slots);
+	config->ssp.tdm_slot_width = le32_to_cpu(hw_config->tdm_slot_width);
+	config->ssp.mclk_direction = hw_config->mclk_direction;
+	config->ssp.rx_slots = le32_to_cpu(hw_config->rx_slots);
+	config->ssp.tx_slots = le32_to_cpu(hw_config->tx_slots);
+
+	dev_info(sdev->dev, "tplg: config SSP%d fmt 0x%x mclk %d bclk %d fclk %d width (%d)%d slots %d mclk id %d quirks %d\n",
+		config->dai_index, config->format,
+		config->ssp.mclk_rate, config->ssp.bclk_rate,
+		config->ssp.fsync_rate, config->ssp.sample_valid_bits,
+		config->ssp.tdm_slot_width, config->ssp.tdm_slots,
+		config->ssp.mclk_id, config->ssp.quirks);
+
+	/* validate SSP fsync rate and channel count */
+	if (config->ssp.fsync_rate < 8000 || config->ssp.fsync_rate > 192000) {
+		dev_err(sdev->dev, "error: invalid fsync rate for SSP%d\n",
+			config->dai_index);
+		return -EINVAL;
+	}
+
+	if (config->ssp.tdm_slots < 1 || config->ssp.tdm_slots > 8) {
+		dev_err(sdev->dev, "error: invalid channel count for SSP%d\n",
+			config->dai_index);
+		return -EINVAL;
+	}
+
+	/* send message to DSP */
+	ret = sof_ipc_tx_message(sdev->ipc,
+				 config->hdr.cmd, config, size, &reply,
+				 sizeof(reply));
+
+	if (ret < 0) {
+		dev_err(sdev->dev, "error: failed to set DAI config for SSP%d\n",
+			config->dai_index);
+		return ret;
+	}
+
+	/* set config for all DAI's with name matching the link name */
+	ret = sof_set_dai_config(sdev, size, link, config);
+	if (ret < 0)
+		dev_err(sdev->dev, "error: failed to save DAI config for SSP%d\n",
+			config->dai_index);
+
+	return ret;
 	/*TODO: Add implementation */
-	return 0;
+	//return 0;
 }
 
 static int sof_link_dmic_load(struct snd_soc_component *scomp, int index,
@@ -2807,9 +2950,11 @@ static int sof_link_load(struct snd_soc_component *scomp, int index,
 					&config);
 		break;
 	case SOF_DAI_IMX_SAI:
-		ret = sof_link_sai_load(scomp, index, link, cfg, hw_config,
-					&config);
-		break;
+		//ret = sof_link_sai_load(scomp, index, link, cfg, hw_config,
+		//			&config);
+		//break;
+		config.type = SOF_DAI_IMX_ESAI;
+		// FALLTHROUGH
 	case SOF_DAI_IMX_ESAI:
 		ret = sof_link_esai_load(scomp, index, link, cfg, hw_config,
 					 &config);

@@ -69,12 +69,14 @@ static void sof_pcm_period_elapsed_work(struct work_struct *work)
  */
 void snd_sof_pcm_period_elapsed(struct snd_pcm_substream *substream)
 {
+	printk(KERN_DEBUG "snd_sof_pcm_period_elapsed entry");
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_component *component =
 		snd_soc_rtdcom_lookup(rtd, DRV_NAME);
 	struct snd_sof_dev *sdev = snd_soc_component_get_drvdata(component);
 	struct snd_sof_pcm *spcm;
 
+	dev_dbg(sdev->dev, "snd_sof_pcm_period_elapsed");
 	spcm = snd_sof_find_spcm_dai(sdev, rtd);
 	if (!spcm) {
 		dev_err(sdev->dev,
