@@ -616,7 +616,7 @@ static int sof_pcm_dai_link_fixup(struct snd_soc_pcm_runtime *rtd,
 	struct snd_sof_dai *dai =
 		snd_sof_find_dai(sdev, (char *)rtd->dai_link->name);
 
-	/* no topology exists for this BE, try a common configuration */
+		/* no topology exists for this BE, try a common configuration */
 	if (!dai) {
 		dev_warn(sdev->dev, "warning: no topology found for BE DAI %s config\n",
 			 rtd->dai_link->name);
@@ -633,6 +633,10 @@ static int sof_pcm_dai_link_fixup(struct snd_soc_pcm_runtime *rtd,
 
 		return 0;
 	}
+
+	pr_info("xxx: Searched dai for %s, found dai %s %s\n", rtd->dai_link->name,
+		dai->name, dai->cpu_dai_name);
+
 
 	/* read format from topology */
 	snd_mask_none(fmt);
@@ -652,6 +656,7 @@ static int sof_pcm_dai_link_fixup(struct snd_soc_pcm_runtime *rtd,
 		return -EINVAL;
 	}
 
+	pr_info("xxx: fixup DAI config dai %px daiconfig %px\n", dai, dai->dai_config);
 	/* read rate and channels from topology */
 	switch (dai->dai_config->type) {
 	case SOF_DAI_INTEL_SSP:
@@ -678,6 +683,18 @@ static int sof_pcm_dai_link_fixup(struct snd_soc_pcm_runtime *rtd,
 		break;
 	case SOF_DAI_INTEL_HDA:
 		/* do nothing for HDA dai_link */
+		break;
+	case SOF_DAI_IMX_ESAI:
+		rate->min = dai->dai_config->esai.fsync_rate;
+		rate->max = dai->dai_config->esai.fsync_rate;
+		channels->min = dai->dai_config->esai.tdm_slots;
+		channels->max = dai->dai_config->esai.tdm_slots;
+
+		dev_dbg(sdev->dev,
+			"rate_min: %d rate_max: %d\n", rate->min, rate->max);
+		dev_dbg(sdev->dev,
+			"channels_min: %d channels_max: %d\n",
+			channels->min, channels->max);
 		break;
 	default:
 		dev_err(sdev->dev, "error: invalid DAI type %d\n",
@@ -745,6 +762,8 @@ void snd_sof_new_platform_drv(struct snd_sof_dev *sdev)
 	pd->compr_ops = &sof_compressed_ops;
 #endif
 	pd->pcm_new = sof_pcm_new;
+	pr_info("xxx: sof: ignore machine %s\n", drv_name);
+
 	pd->ignore_machine = drv_name;
 	pd->be_hw_params_fixup = sof_pcm_dai_link_fixup;
 	pd->be_pcm_base = SOF_BE_PCM_BASE;

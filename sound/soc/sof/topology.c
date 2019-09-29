@@ -1125,7 +1125,7 @@ static int sof_connect_dai_widget(struct snd_soc_component *scomp,
 	struct snd_soc_pcm_runtime *rtd;
 
 	list_for_each_entry(rtd, &card->rtd_list, list) {
-		dev_vdbg(sdev->dev, "tplg: check widget: %s stream: %s dai stream: %s\n",
+		dev_info(sdev->dev, "tplg: check widget: %s stream: %s dai stream: %s\n",
 			 w->name,  w->sname, rtd->dai_link->stream_name);
 
 		if (!w->sname || !rtd->dai_link->stream_name)
@@ -1999,7 +1999,7 @@ static int sof_widget_ready(struct snd_soc_component *scomp, int index,
 	swidget->private = NULL;
 	memset(&reply, 0, sizeof(reply));
 
-	dev_dbg(sdev->dev, "tplg: ready widget id %d pipe %d type %d name : %s stream %s\n",
+	dev_info(sdev->dev, "tplg: ready widget id %d pipe %d type %d name : %s stream %s\n",
 		swidget->comp_id, index, swidget->id, tw->name,
 		strnlen(tw->sname, SNDRV_CTL_ELEM_ID_NAME_MAXLEN) > 0
 			? tw->sname : "none");
@@ -2557,33 +2557,44 @@ static int sof_link_esai_load(struct snd_soc_component *scomp, int index,
 	u32 size = sizeof(*config);
 	int ret;
 
+	pr_info("xxx: sof_link_esai_load\n");
 	/* handle master/slave and inverted clocks */
 	sof_dai_set_format(hw_config, config);
 
 	/* init IPC */
-	dev_info(sdev->dev, "sof_link_esai_load");
-	memset(&config->ssp, 0, sizeof(struct sof_ipc_dai_ssp_params));
+	memset(&config->esai, 0, sizeof(struct sof_ipc_dai_esai_params));
 	config->hdr.size = size;
 
-	/*ret = sof_parse_tokens(scomp, &config->ssp, ssp_tokens,
+	/* no tokens for now */
+#if 0
+	ret = sof_parse_tokens(scomp, &config->ssp, ssp_tokens,
 			       ARRAY_SIZE(ssp_tokens), private->array,
 			       le32_to_cpu(private->size));
 	if (ret != 0) {
 		dev_err(sdev->dev, "error: parse ssp tokens failed %d\n",
 			le32_to_cpu(private->size));
 		return ret;
-	} */
-
-	config->ssp.mclk_rate = le32_to_cpu(hw_config->mclk_rate);
+	}
+#endif
+	config->esai.mclk_rate = le32_to_cpu(hw_config->mclk_rate);
+#if 0
 	config->ssp.bclk_rate = le32_to_cpu(hw_config->bclk_rate);
 	config->ssp.fsync_rate = le32_to_cpu(hw_config->fsync_rate);
-	config->ssp.tdm_slots = le32_to_cpu(hw_config->tdm_slots);
-	config->ssp.tdm_slot_width = le32_to_cpu(hw_config->tdm_slot_width);
-	config->ssp.mclk_direction = hw_config->mclk_direction;
-	config->ssp.rx_slots = le32_to_cpu(hw_config->rx_slots);
-	config->ssp.tx_slots = le32_to_cpu(hw_config->tx_slots);
+#endif
+	config->esai.tdm_slots = le32_to_cpu(hw_config->tdm_slots);
+	config->esai.tdm_slot_width = le32_to_cpu(hw_config->tdm_slot_width);
+	//config->esai.mclk_direction = hw_config->mclk_direction;
+	config->esai.rx_slots = le32_to_cpu(hw_config->rx_slots);
+	config->esai.tx_slots = le32_to_cpu(hw_config->tx_slots);
 
-	dev_info(sdev->dev, "tplg: config SSP%d fmt 0x%x mclk %d bclk %d fclk %d width (%d)%d slots %d mclk id %d quirks %d\n",
+	dev_info(sdev->dev,
+		 "tplg: config ESAI%d fmt 0x%x mclk %d width (%d)%d slots %d mclk id %d\n",
+		config->dai_index, config->format,
+		config->ssp.mclk_rate, config->ssp.sample_valid_bits,
+		config->ssp.tdm_slot_width, config->ssp.tdm_slots,
+		config->ssp.mclk_id);
+#if 0
+	dev_dbg(sdev->dev, "tplg: config SSP%d fmt 0x%x mclk %d bclk %d fclk %d width (%d)%d slots %d mclk id %d quirks %d\n",
 		config->dai_index, config->format,
 		config->ssp.mclk_rate, config->ssp.bclk_rate,
 		config->ssp.fsync_rate, config->ssp.sample_valid_bits,
@@ -2603,6 +2614,7 @@ static int sof_link_esai_load(struct snd_soc_component *scomp, int index,
 		return -EINVAL;
 	}
 
+#endif
 	/* send message to DSP */
 	ret = sof_ipc_tx_message(sdev->ipc,
 				 config->hdr.cmd, config, size, &reply,
@@ -2621,8 +2633,6 @@ static int sof_link_esai_load(struct snd_soc_component *scomp, int index,
 			config->dai_index);
 
 	return ret;
-	/*TODO: Add implementation */
-	//return 0;
 }
 
 static int sof_link_dmic_load(struct snd_soc_component *scomp, int index,
@@ -2866,6 +2876,8 @@ static int sof_link_load(struct snd_soc_component *scomp, int index,
 	int ret;
 	int i = 0;
 
+	pr_info("xxx: sof_link_load\n");
+
 	if (!link->platforms) {
 		dev_err(sdev->dev, "error: no platforms\n");
 		return -EINVAL;
@@ -2914,7 +2926,7 @@ static int sof_link_load(struct snd_soc_component *scomp, int index,
 			return -EINVAL;
 		}
 	} else {
-		dev_dbg(sdev->dev, "tplg: %d hw_configs found, default id: %d!\n",
+		dev_info(sdev->dev, "tplg: %d hw_configs found, default id: %d!\n",
 			cfg->num_hw_configs, le32_to_cpu(cfg->default_hw_config_id));
 
 		for (i = 0; i < num_hw_configs; i++) {
