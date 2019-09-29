@@ -336,6 +336,10 @@ static int imx_cs42888_probe(struct platform_device *pdev)
 	int ret;
 	u32 width;
 
+	pr_info("imx_cs42888_probe\n");
+
+	device_set_of_node_from_dev(&pdev->dev, pdev->dev.parent);
+
 	priv->pdev = pdev;
 	priv->asrc_pdev = NULL;
 
@@ -346,7 +350,7 @@ static int imx_cs42888_probe(struct platform_device *pdev)
 	codec_np = of_parse_phandle(pdev->dev.of_node, "audio-codec", 0);
 	if (!esai_np || !codec_np) {
 		dev_err(&pdev->dev, "phandle missing or invalid\n");
-		ret = -EINVAL;
+		//ret = -EINVAL;
 		goto fail;
 	}
 
@@ -359,8 +363,8 @@ static int imx_cs42888_probe(struct platform_device *pdev)
 	esai_pdev = of_find_device_by_node(esai_np);
 	if (!esai_pdev) {
 		dev_err(&pdev->dev, "failed to find ESAI platform device\n");
-		ret = -EINVAL;
-		goto fail;
+	//	ret = -EINVAL;
+	//	goto fail;
 	}
 
 	if (priv->is_codec_rpmsg) {
@@ -413,7 +417,7 @@ static int imx_cs42888_probe(struct platform_device *pdev)
 
 	/*if there is no asrc controller, we only enable one device*/
 	if (!asrc_pdev) {
-		imx_cs42888_dai[0].cpus->dai_name    = dev_name(&esai_pdev->dev);
+		imx_cs42888_dai[0].cpus->dai_name    = "596e8000.dsp"; //dev_name(&esai_pdev->dev);
 		imx_cs42888_dai[0].platforms->of_node = esai_np;
 		snd_soc_card_imx_cs42888.num_links = 1;
 		snd_soc_card_imx_cs42888.num_dapm_routes =
